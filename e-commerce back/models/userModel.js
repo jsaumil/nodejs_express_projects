@@ -31,13 +31,19 @@ const userSchema = new mongoose.Schema({
     },
 });
 
+userSchema.methods.isPasswordMatch = async function(enteredPassword){
+    return await bcrypt.compare(enteredPassword, this.password);
+};
+
 userSchema.pre("save",async function(next){
+    if(!this.isModified('password')) return next();
+
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password,salt);
+    next();
 });
-userSchema.method.isPasswordMatch = async function(enterPassword){
-    return await bcrypt.compare(enterPassword, this.password);
-}
+
 
 //Export the model
-module.exports = mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
+module.exports = User;
