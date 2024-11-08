@@ -29,7 +29,26 @@ const userSchema = new mongoose.Schema({
         type:String,
         required:true
     },
-});
+    role: {
+        type: String,
+        default: "user"
+    },
+    cart: {
+        type: Array,
+        default: []
+    },
+    address: [{
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "Address"
+    }],
+    wishlist: [{
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "Product"
+    }]
+},{
+    timestamps: true,  // Automatically adds createdAt and updatedAt fields
+}
+);
 
 userSchema.methods.isPasswordMatch = async function(enteredPassword){
     return await bcrypt.compare(enteredPassword, this.password);
