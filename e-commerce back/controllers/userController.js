@@ -2,9 +2,16 @@ const User = require('../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 const generateToken = require("./../config/jwtToken");
+const mongoose = require('mongoose');
+
+const validateObjectId = (id, next) => {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(new AppError('Invalid ID format', 400));
+    }
+};
 
 
-
+//Create a User
 exports.createUser = catchAsync(async (req, res, next) =>{
     // console.log("Request body:", req.body);
     const { firstname, lastname, email, mobile, password } = req.body;
@@ -23,6 +30,8 @@ exports.createUser = catchAsync(async (req, res, next) =>{
     });
 });
 
+
+//Login a User
 exports.loginUser = catchAsync(async (req,res,next) => {
     const {email,password} = req.body;
 
@@ -71,7 +80,6 @@ exports.loginUser = catchAsync(async (req,res,next) => {
 
 
 //Get all user
-
 exports.getallUsers = catchAsync(async (req,res,next) => {
     const users = await User.find();
     res.json({
@@ -83,9 +91,12 @@ exports.getallUsers = catchAsync(async (req,res,next) => {
     });
 });
 
-// Get single user
 
+// Get single user
 exports.getUser = catchAsync(async (req,res,next) => {
+    const id = req.params;
+    validateObjectId(id,next);
+    
     const user = await User.findById(req.params.id);
 
     if (!user){
@@ -100,16 +111,28 @@ exports.getUser = catchAsync(async (req,res,next) => {
     });
 });
 
-// Update User
 
+// Update User
 exports.updateUser = catchAsync(async (req,res,next) => {
-    const user = await User.findByIdAndUpdate(req.params.id, req.body,
-        {new: true, runValidators: true});
+    console.log(req.user);
+    const id = req.user.id;
+    validateObjectId(id,next);
+
+    const user = await User.findByIdAndUpdate(
+        id,
+        {
+            firstname : req.body.firstname,
+            lastname : req.body.lastname,
+            email : req.body.email,
+            mobile : req.body.mobile
+        },
+        {new: true}
+    );
 
     if (!user){
         return next(new AppError('No user found with that ID',404));
     }
-    res.status(200).json({
+    res.status(201).json({
         status :'success',
         data: {
             user
@@ -120,7 +143,9 @@ exports.updateUser = catchAsync(async (req,res,next) => {
 // Delete user
 
 exports.deleteUser = catchAsync(async (req,res,next) => {
-    
+    const { id } =req.params;
+    validateObjectId(id,next);
+
     const user = await User.findByIdAndDelete(req.params.id);
 
     if (!user){
@@ -129,5 +154,46 @@ exports.deleteUser = catchAsync(async (req,res,next) => {
     res.status(204).json({
         status : 'success',
         data: null
+    });
+});
+
+exports.unblockUser = catchAsync(async (req,res,next) =>{
+    const { id } = req.params;
+    validateObjectId(id,next);
+
+    const user = await User.findByIdAndUpdate(
+        id,
+        {
+            isBlocked : true
+        },
+        {
+            new: true
+        }
+    );
+    res.json({
+        message: "User is unblocked"
+    });
+});
+
+exports.blockUser = catchAsync(async(req,res,next) =>{
+    const { id } = req.params;
+    validateObjectId(id,next);
+
+    const user = await User.findByIdAndUpdate(
+        id,
+        {
+            isBlocked : true
+        },
+        {
+            new: true
+        }
+    );
+
+    if (!user) {
+        return next(new AppError('No user found with that ID', 404));
+    }
+
+    res.json({
+        message: "User is blocked"
     });
 });
