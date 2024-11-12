@@ -6,7 +6,9 @@ const mid = require("./../middleware/authMiddleware");
 
 router.post("/register",userController.createUser);
 router.post("/login",userController.loginUser);
+router.get("/logout",userController.logoutUser);
 router.get("/all-users",userController.getallUsers);
+router.get("/refresh",userController.handleRefreshToken);
 router
     .route('/:id')
     .get(mid.authMiddleware,mid.isAdmin,userController.getUser)

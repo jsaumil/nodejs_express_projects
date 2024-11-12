@@ -3,6 +3,8 @@ const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 const generateToken = require("./../config/jwtToken");
 const mongoose = require('mongoose');
+const generateRefreshToken = require("./../config/refreshToken");
+const jwt=require('jsonwebtoken');
 
 const validateObjectId = (id, next) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -43,6 +45,20 @@ exports.loginUser = catchAsync(async (req,res,next) => {
     if(!isMatch){
         return next(new AppError('Incorrect password',401));
     }
+    
+    const refreshToken = await generateRefreshToken(findUser._id);
+    const updateuser = await User.findByIdAndUpdate(
+        findUser.id,
+        {
+            refreshToken: refreshToken
+        },
+        {new:true}
+        );
+
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            maxAge: 72*60*60*1000
+        });
 
     // const token = generateToken(findUser._id);  // Replace with the actual token
 
@@ -109,6 +125,56 @@ exports.getUser = catchAsync(async (req,res,next) => {
             user
         }
     });
+});
+
+
+//Handle Refresh Token
+exports.handleRefreshToken=catchAsync(async (req,res,next) => {
+    const cookie = req.cookies;
+    console.log(cookie);
+    if(!cookie.refreshToken) {
+        return next(new AppError('No refresh token provided',401));
+    }
+    const refreshToken = cookie.refreshToken;
+    console.log(refreshToken);
+    const user = await User.findOne({ refreshToken });
+    if(!user) {
+        return next(new AppError('Invalid refresh token',401));
+    }
+    jwt.verify(refreshToken, process.env.JWT_SECRET,(err,decoded) =>{
+        if(err || user.id !== decoded.id){
+            return next(new AppError('Invalid refresh token',401));
+        }
+        const accessToken = generateToken(user._id)
+        res.json({accessToken});
+    });
+    //res.json(user);
+});
+
+//logout function
+exports.logoutUser = catchAsync(async (req,res,next) => {
+    const cookie = req.cookies;
+    if(!cookie.refreshToken) {
+        return next(new AppError('No refresh token provided',401));
+    }
+    const refreshToken = cookie.refreshToken;
+    const user = await User.findOne({refreshToken});
+    if (!user) {
+        res.clearCookie("refreshToken",{
+            httpOnly:true,
+            secure:true
+        });
+        return res.sendStatus(204); //forbidden
+    }
+
+    await User.findOneAndUpdate({refreshToken},
+        {refreshToken: ""});
+    
+    res.clearCookie("refreshToken",{
+        httpOnly:true,
+        secure:true
+    });
+    return res.sendStatus(204); //forbidden
 });
 
 

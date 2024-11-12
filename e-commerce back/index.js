@@ -2,7 +2,9 @@ const express = require('express');
 const app = express();
 const dotenv = require('dotenv');
 const authRouter = require('./routes/authRoute');
+const productRouter = require('./routes/productRoute');
 const AppError = require('./utils/appError');
+const cookieParser = require('cookie-parser');
 
 const globalErrorHandler = require('./controllers/errorController');
 
@@ -14,9 +16,10 @@ dbConnect();
 //Middleware
 app.use(express.json());
 app.use(express.static(`${__dirname}/public`));
+app.use(cookieParser());
 
 app.use("/api/user",authRouter);
-
+app.use("/api/product",productRouter);
 
 //server
 app.listen(port, () => {
