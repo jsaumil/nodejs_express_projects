@@ -5,6 +5,8 @@ const authRouter = require('./routes/authRoute');
 const productRouter = require('./routes/productRoute');
 const AppError = require('./utils/appError');
 const cookieParser = require('cookie-parser');
+const morgan = require('morgan');
+const bodyParser = require('body-parser');
 
 const globalErrorHandler = require('./controllers/errorController');
 
@@ -14,6 +16,9 @@ const dbConnect =require('./config/dbConnect');
 dbConnect();
 
 //Middleware
+app.use(morgan("dev"));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(`${__dirname}/public`));
 app.use(cookieParser());
